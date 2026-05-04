@@ -18,6 +18,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Create Fly app if missing
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if ! flyctl status -a "$FLY_APP" >/dev/null 2>&1; then
+            flyctl apps create "$FLY_APP" --org personal
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
