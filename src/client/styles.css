@@ -1,0 +1,217 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+
+/* =========================================================================
+   Miranum Design System — "Swiss Lab"
+   Source of truth for all visual tokens. shadcn variables map to these.
+   See .context/attachments/style-guide.html for the full guide.
+   ========================================================================= */
+
+:root {
+  /* Paper */
+  --mn-paper: #ffffff;
+  --mn-paper-2: #f6f6f4;
+  --mn-paper-3: #efeeea;
+
+  /* Ink */
+  --mn-ink: #0a0a0a;
+  --mn-ink-2: #6b6b6b;
+  --mn-ink-3: #9a9a96;
+
+  /* Rules */
+  --mn-rule: #d8d8d4;
+  --mn-rule-soft: #ececea;
+
+  /* Signal — sparingly used */
+  --mn-accent: #e6332a;
+  --mn-accent-soft: #fde6e4;
+  --mn-accent-deep: #c1281f;
+
+  /* Element-Gruppen — only for ElementBox tiles, never for UI actions */
+  --grp-finance: #e6332a;
+  --grp-ops: #d97706;
+  --grp-time: #6b21a8;
+  --grp-tools: #047857;
+  --grp-ai: #2563eb;
+
+  /* Background grid */
+  --mn-grid: rgba(10, 10, 10, 0.04);
+
+  /* shadcn ↦ Miranum bridge */
+  --background: var(--mn-paper);
+  --foreground: var(--mn-ink);
+  --card: var(--mn-paper);
+  --card-foreground: var(--mn-ink);
+  --popover: var(--mn-paper);
+  --popover-foreground: var(--mn-ink);
+  --primary: var(--mn-ink);
+  --primary-foreground: var(--mn-paper);
+  --secondary: var(--mn-paper-2);
+  --secondary-foreground: var(--mn-ink);
+  --muted: var(--mn-paper-3);
+  --muted-foreground: var(--mn-ink-2);
+  --accent: var(--mn-accent);
+  --accent-foreground: var(--mn-paper);
+  --destructive: var(--mn-accent);
+  --border: var(--mn-rule);
+  --input: var(--mn-ink);
+  --ring: var(--mn-accent);
+
+  /* Square corners. The Miranum design language has zero rounding. */
+  --radius: 0;
+}
+
+@theme inline {
+  /* Fonts */
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Miranum color tokens exposed as Tailwind utilities (paper / ink / accent / grp.*) */
+  --color-paper: var(--mn-paper);
+  --color-paper-2: var(--mn-paper-2);
+  --color-paper-3: var(--mn-paper-3);
+  --color-ink: var(--mn-ink);
+  --color-ink-2: var(--mn-ink-2);
+  --color-ink-3: var(--mn-ink-3);
+  --color-rule: var(--mn-rule);
+  --color-rule-soft: var(--mn-rule-soft);
+  --color-mn-accent: var(--mn-accent);
+  --color-mn-accent-soft: var(--mn-accent-soft);
+  --color-grp-finance: var(--grp-finance);
+  --color-grp-ops: var(--grp-ops);
+  --color-grp-time: var(--grp-time);
+  --color-grp-tools: var(--grp-tools);
+  --color-grp-ai: var(--grp-ai);
+
+  /* shadcn bridge — same vars Tailwind utilities resolve via @theme inline */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Force square corners across every shadcn radius bucket */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--mn-paper);
+  background-image:
+    linear-gradient(to right, var(--mn-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--mn-grid) 1px, transparent 1px);
+  background-size: 60px 60px;
+  color: var(--mn-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography utilities — Miranum scale */
+.text-h-display {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+}
+.text-h-1 {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.96;
+}
+.text-h-2 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.text-h-3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.text-h-4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.text-body-lg {
+  font-size: 1.1rem;
+  line-height: 1.55;
+  color: var(--mn-ink-2);
+}
+.text-body {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--mn-ink-2);
+}
+.text-body-sm {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--mn-ink-2);
+}
+
+/* Mono label — meta, kicker, data */
+.mn-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mn-ink-3);
+}
+.mn-mono-lg {
+  font-size: 13px;
+  letter-spacing: 0.16em;
+}
+.mn-mono-accent {
+  color: var(--mn-accent);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    color: var(--foreground);
+  }
+  html {
+    font-family: var(--font-sans);
+  }
+}
