@@ -1,20 +1,53 @@
-Welcome to your new TanStack Start app! 
+Miranum App Template — React SPA + Hono backend mit den Miranum-Clients
+(ClockIn, Dimacon, Lexoffice).
 
-# Getting Started
+## Architektur
 
-To run this application:
+```
+src/
+├── client/     React-SPA (TanStack Router, Tailwind, shadcn)
+└── server/     Hono-Backend (proxy für die API-Clients)
+    ├── lib/    env reader + lazy client singletons
+    └── routes/ /api/{clockin,dimacon,lexoffice}/...
+packages/clients/{clockin,dimacon,lexoffice}/  workspace packages
+```
+
+Der Backend-Server serviert die API-Routes unter `/api/...` und im Production-Build
+auch die statischen Client-Assets aus `dist/client`. Im Dev läuft Vite separat
+auf Port 3000 und proxied `/api` zum Backend auf Port 3020.
+
+## Getting Started
 
 ```bash
 pnpm install
-pnpm dev
+# .env mit den Variablen aus der Tabelle unten anlegen
+pnpm dev   # client (3000) + server (3020) parallel
 ```
 
-# Building For Production
+## Environment
 
-To build this application for production:
+Der Server liest API-Tokens aus `process.env`. Lokal über `.env`, in Prod über
+`fly secrets set …`. Variablen:
+
+| Variable                  | Beschreibung                | Pflicht |
+| ------------------------- | --------------------------- | ------- |
+| `PORT`                    | Server-Port (default: 3020) | nein    |
+| `CLOCKIN_API_TOKEN`       | ClockIn API Token           | ja\*    |
+| `CLOCKIN_BASE_URL`        | ClockIn override            | nein    |
+| `DIMACON_BASE_URL`        | Dimacon Base URL            | ja\*    |
+| `DIMACON_TENANT`          | Dimacon Tenant              | ja\*    |
+| `DIMACON_API_TOKEN`       | Dimacon API Token           | ja\*    |
+| `LEXWARE_OFFICE_API_KEY`  | Lexoffice API Key           | ja\*    |
+| `LEXWARE_OFFICE_BASE_URL` | Lexoffice override          | nein    |
+
+\* nur erforderlich wenn die jeweiligen `/api/<service>/...` Routes genutzt werden
+(lazy validation beim ersten Request).
+
+## Building For Production
 
 ```bash
-pnpm build
+pnpm build       # vite build → dist/client
+pnpm start       # tsx src/server/index.ts (serviert API + statics)
 ```
 
 ## Testing
@@ -38,8 +71,6 @@ If you prefer not to use Tailwind CSS:
 3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
 4. Uninstall the packages: `pnpm add @tailwindcss/vite tailwindcss --dev`
 
-
-
 ## Routing
 
 This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
@@ -57,7 +88,7 @@ Now that you have two routes you can use a `Link` component to navigate between 
 To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
 
 ```tsx
-import { Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router"
 ```
 
 Then anywhere in your JSX you can use it like so:
@@ -77,14 +108,14 @@ In the File Based Routing setup the layout is located in `src/routes/__root.tsx`
 Here is an example layout that includes a header:
 
 ```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "My App" },
     ],
   }),
   shellComponent: ({ children }) => (
@@ -114,22 +145,22 @@ More information on layouts can be found in the [Layouts documentation](https://
 TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
 
 ```tsx
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn } from "@tanstack/react-start"
 
 const getServerTime = createServerFn({
-  method: 'GET',
+  method: "GET",
 }).handler(async () => {
   return new Date().toISOString()
 })
 
 // Use in a component
 function MyComponent() {
-  const [time, setTime] = useState('')
-  
+  const [time, setTime] = useState("")
+
   useEffect(() => {
     getServerTime().then(setTime)
   }, [])
-  
+
   return <div>Server time: {time}</div>
 }
 ```
@@ -139,13 +170,13 @@ function MyComponent() {
 You can create API routes by using the `server` property in your route definitions:
 
 ```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
+import { createFileRoute } from "@tanstack/react-router"
+import { json } from "@tanstack/react-start"
 
-export const Route = createFileRoute('/api/hello')({
+export const Route = createFileRoute("/api/hello")({
   server: {
     handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
+      GET: () => json({ message: "Hello, World!" }),
     },
   },
 })
@@ -158,11 +189,11 @@ There are multiple ways to fetch data in your application. You can use TanStack 
 For example:
 
 ```tsx
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router"
 
-export const Route = createFileRoute('/people')({
+export const Route = createFileRoute("/people")({
   loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
+    const response = await fetch("https://swapi.dev/api/people")
     return response.json()
   },
   component: PeopleComponent,
@@ -181,6 +212,36 @@ function PeopleComponent() {
 ```
 
 Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
+
+# API Clients
+
+Workspace-Packages unter `packages/clients/`:
+
+- `@miranum/client-clockin` — ClockIn (`createClockInClient`)
+- `@miranum/client-dimacon` — Dimacon (`createDimaconClient`)
+- `@miranum/client-lexoffice` — Lexoffice (`createLexofficeClient`)
+
+ClockIn und Dimacon werden via `@hey-api/openapi-ts` aus OpenAPI-Specs generiert
+(`pnpm --filter @miranum/client-clockin generate`). Der Lexoffice-Client ist
+hand-geschrieben und nutzt Node's `Buffer` — daher Server-only.
+
+Eingebunden im Backend über `src/server/lib/clients.ts` (lazy singletons aus
+env-Variablen). Neue Endpoints werden in `src/server/routes/<service>.ts`
+ergänzt — Beispiele: `GET /api/clockin/projects`, `GET /api/dimacon/me`,
+`GET /api/lexoffice/profile`.
+
+# Deployment
+
+Dockerfile baut ein `node:22-alpine`-Image, läuft `tsx src/server/index.ts`
+auf Port 3020. Health-Check unter `/healthz`. Tokens werden über `fly secrets`
+gesetzt:
+
+```bash
+fly secrets set \
+  CLOCKIN_API_TOKEN=… \
+  DIMACON_BASE_URL=… DIMACON_TENANT=… DIMACON_API_TOKEN=… \
+  LEXWARE_OFFICE_API_KEY=…
+```
 
 # Demo files
 
