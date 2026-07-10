@@ -15,3 +15,6 @@ __unconfig*
 todos.json
 *.tsbuildinfo
 .playwright-mcp
+.gstack/
+/data/
+.idea

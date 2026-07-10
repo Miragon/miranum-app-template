@@ -9,8 +9,10 @@ src/
 └── server/     Hono-Backend (proxy für die API-Clients)
     ├── lib/    env reader + lazy client singletons
     └── routes/ /api/{clockin,dimacon,lexoffice}/...
-packages/clients/{clockin,dimacon,lexoffice}/  workspace packages
 ```
+
+Die API-Clients kommen als npm-Packages (`@miragon/client-{clockin,dimacon,lexoffice}`)
+aus [Miragon/miranum-clients](https://github.com/Miragon/miranum-clients).
 
 Der Backend-Server serviert die API-Routes unter `/api/...` und im Production-Build
 auch die statischen Client-Assets aus `dist/client`. Im Dev läuft Vite separat
@@ -20,28 +22,53 @@ auf Port 3000 und proxied `/api` zum Backend auf Port 3020.
 
 ```bash
 pnpm install
-# .env mit den Variablen aus der Tabelle unten anlegen
-pnpm dev   # client (3000) + server (3020) parallel
+cp env.example .env   # dann Werte eintragen
+pnpm dev              # client (3000) + server (3020) parallel
 ```
 
 ## Environment
 
-Der Server liest API-Tokens aus `process.env`. Lokal über `.env`, in Prod über
-`fly secrets set …`. Variablen:
+Beim Server-Start lädt `dotenv` die `.env` (gitignored) und reichert damit
+`process.env` an — bereits gesetzte Werte werden **nicht** überschrieben.
+Lokal kommt also alles aus `.env`, in Prod gewinnen `fly secrets`. Template:
+[`env.example`](./env.example). Variablen:
 
-| Variable                  | Beschreibung                | Pflicht |
-| ------------------------- | --------------------------- | ------- |
-| `PORT`                    | Server-Port (default: 3020) | nein    |
-| `CLOCKIN_API_TOKEN`       | ClockIn API Token           | ja\*    |
-| `CLOCKIN_BASE_URL`        | ClockIn override            | nein    |
-| `DIMACON_BASE_URL`        | Dimacon Base URL            | ja\*    |
-| `DIMACON_TENANT`          | Dimacon Tenant              | ja\*    |
-| `DIMACON_API_TOKEN`       | Dimacon API Token           | ja\*    |
-| `LEXWARE_OFFICE_API_KEY`  | Lexoffice API Key           | ja\*    |
-| `LEXWARE_OFFICE_BASE_URL` | Lexoffice override          | nein    |
+| Variable                  | Beschreibung                                               | Pflicht |
+| ------------------------- | ---------------------------------------------------------- | ------- |
+| `PORT`                    | Server-Port (default: 3020)                                | nein    |
+| `CLOCKIN_API_TOKEN`       | ClockIn API Token                                          | ja\*    |
+| `CLOCKIN_BASE_URL`        | ClockIn override                                           | nein    |
+| `DIMACON_BASE_URL`        | Dimacon Base URL                                           | ja\*    |
+| `DIMACON_TENANT`          | Dimacon Tenant                                             | ja\*    |
+| `DIMACON_API_TOKEN`       | Dimacon API Token                                          | ja\*    |
+| `LEXWARE_OFFICE_API_KEY`  | Lexoffice API Key                                          | ja\*    |
+| `LEXWARE_OFFICE_BASE_URL` | Lexoffice override                                         | nein    |
+| `SYNC_WEBHOOK_SECRET`     | Shared-Secret für `POST /api/sync/run` (leer = offen)      | nein    |
+| `SETTINGS_PATH`           | Pfad für Settings-JSON (default `./data/settings.json`)    | nein    |
+| `SYNC_CRON`               | Initial-Seed des Cron-Ausdrucks (danach UI-konfigurierbar) | nein    |
+| `SYNC_TZ`                 | Initial-Seed der Zeitzone (default `Europe/Berlin`)        | nein    |
+| `WORKOS_CLIENT_ID`        | WorkOS Client ID (Backend, für JWKS). Leer = Auth aus.     | nein    |
+| `VITE_WORKOS_CLIENT_ID`   | Gleicher Wert für SPA-Bundle. Leer = Auth-UI aus.          | nein    |
+| `WORKOS_REQUIRED_ORG_ID`  | Org, deren `org_id` im Token akzeptiert wird               | nein    |
 
 \* nur erforderlich wenn die jeweiligen `/api/<service>/...` Routes genutzt werden
 (lazy validation beim ersten Request).
+
+**Sync-Scheduler:** Cron-Ausdruck und Timezone werden **persistent in
+`SETTINGS_PATH`** (JSON) gehalten und über die UI unter `/settings` editiert.
+`SYNC_CRON` / `SYNC_TZ` werden nur beim ersten Start als Seed verwendet, falls
+das Settings-File noch nicht existiert. Für Fly: Volume an `/data` mounten und
+`SETTINGS_PATH=/data/settings.json` setzen, damit Settings Redeploys überleben.
+
+**Auth (WorkOS):** Wenn `WORKOS_CLIENT_ID` gesetzt ist, schützt eine
+JWT-Middleware alle `/api/*`-Routes (außer `/api/sync/healthz` + `/api/sync/run` —
+Webhook hat eigenes Secret). Tokens werden gegen die WorkOS-JWKS verifiziert,
+zusätzlich wird `org_id === WORKOS_REQUIRED_ORG_ID` geprüft. Im Frontend bakt
+Vite `VITE_WORKOS_CLIENT_ID` ins Bundle und das `<AuthKitProvider>` macht
+Auth-Code-Flow mit PKCE. Im WorkOS-Dashboard müssen Redirect-URI **und**
+Allowed-Origin auf die App-Origin gesetzt sein (z.B. `http://localhost:3000`
+für Dev, `https://<flyapp>` für Prod). Sind die WorkOS-Vars leer, läuft die
+App ohne Login und Backend loggt eine Warnung — nur für Dev gedacht.
 
 ## Building For Production
 
@@ -213,17 +240,61 @@ function PeopleComponent() {
 
 Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
 
+# Sync (Dimacon → Clockin)
+
+Überträgt die Tagesplanung aus Dimacon nach Clockin. Logik in `src/server/sync/`,
+HTTP-Route in `src/server/routes/sync.ts`. Siehe `.context/attachments/SKILL.md`
+für die fachliche Spezifikation.
+
+**Drei Trigger, ein Endpoint** (`POST /api/sync/run`):
+
+```bash
+# On-Demand (kein Body = heute, dryRun=false)
+curl -X POST http://localhost:3020/api/sync/run
+
+# Mit Datum + dryRun
+curl -X POST http://localhost:3020/api/sync/run \
+  -H "Content-Type: application/json" \
+  -d '{ "date": "2026-05-09", "dryRun": true }'
+
+# Webhook (wenn SYNC_WEBHOOK_SECRET gesetzt)
+curl -X POST http://localhost:3020/api/sync/run \
+  -H "Authorization: Bearer $SYNC_WEBHOOK_SECRET"
+
+# Cron — Schedule wird in `SETTINGS_PATH` persistiert und über die UI
+# (`/settings`) editiert. Erst-Seed optional via Env beim ersten Start:
+SYNC_CRON="0 6 * * *" SYNC_TZ="Europe/Berlin" pnpm start
+```
+
+Response: `SyncResult` mit Listen `projects` (created / updated / unchanged /
+skipped / failed), `archived` und `errors`. Status-Endpoint:
+`GET /api/sync/healthz` zeigt ob ein Lauf gerade aktiv ist.
+
+Architektur-Bausteine:
+
+- `sync/index.ts` — Orchestrator, fail-soft pro Projekt
+- `sync/appointments.ts` + `sync/enrichment.ts` — Daten laden (parallel via `p-limit`)
+- `sync/employees.ts` — Match Nachname → Vorname → E-Mail (mit In-Run-Cache)
+- `sync/customers.ts` — 3-Wege-Sync Dimacon ↔ Lexware ↔ Clockin
+- `sync/projects.ts` — Search-before-create, Mitarbeiter-Diff (attach/detach)
+- `sync/archive.ts` — Nicht-eingeplante Projekte archivieren
+- `sync/mutex.ts` — Verhindert parallele Läufe (HTTP 409)
+- `sync/scheduler.ts` — `croner` In-Process-Scheduler
+
+Tests laufen mit `pnpm test`.
+
 # API Clients
 
-Workspace-Packages unter `packages/clients/`:
+npm-Packages aus [Miragon/miranum-clients](https://github.com/Miragon/miranum-clients):
 
-- `@miranum/client-clockin` — ClockIn (`createClockInClient`)
-- `@miranum/client-dimacon` — Dimacon (`createDimaconClient`)
-- `@miranum/client-lexoffice` — Lexoffice (`createLexofficeClient`)
+- `@miragon/client-clockin` — ClockIn (`createClockInClient`)
+- `@miragon/client-dimacon` — Dimacon (`createDimaconClient`)
+- `@miragon/client-lexoffice` — Lexoffice (`createLexofficeClient`)
 
-ClockIn und Dimacon werden via `@hey-api/openapi-ts` aus OpenAPI-Specs generiert
-(`pnpm --filter @miranum/client-clockin generate`). Der Lexoffice-Client ist
-hand-geschrieben und nutzt Node's `Buffer` — daher Server-only.
+ClockIn und Dimacon werden via `@hey-api/openapi-ts` aus OpenAPI-Specs generiert,
+der Lexoffice-Client ist hand-geschrieben und nutzt Node's `Buffer` — daher
+Server-only. Generierung und Release passieren im miranum-clients-Repo; hier
+werden die Packages nur konsumiert.
 
 Eingebunden im Backend über `src/server/lib/clients.ts` (lazy singletons aus
 env-Variablen). Neue Endpoints werden in `src/server/routes/<service>.ts`

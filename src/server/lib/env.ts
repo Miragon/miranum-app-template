@@ -24,4 +24,11 @@ export const env = {
     apiKey: () => required("LEXWARE_OFFICE_API_KEY"),
     baseUrl: () => optional("LEXWARE_OFFICE_BASE_URL"),
   },
+  sync: {
+    webhookSecret: () => optional("SYNC_WEBHOOK_SECRET"),
+  },
+  workos: {
+    clientId: () => optional("WORKOS_CLIENT_ID"),
+    requiredOrgId: () => optional("WORKOS_REQUIRED_ORG_ID"),
+  },
 }

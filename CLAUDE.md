@@ -9,8 +9,10 @@ src/client/      React SPA (TanStack Router, Vite, Tailwind v4)
 src/server/      Hono Backend (Port 3020)
   ├─ lib/        env reader + lazy client singletons
   └─ routes/     /api/{clockin,dimacon,lexoffice}/...
-packages/clients/{clockin,dimacon,lexoffice}/   workspace API clients
 ```
+
+API-Clients kommen als externe npm-Deps (`@miragon/client-{clockin,dimacon,lexoffice}`)
+aus dem Repo Miragon/miranum-clients — hier nur konsumiert, nicht generiert.
 
 Dev: `pnpm dev` startet Client + Server parallel. Vite proxied `/api` → Hono.
 Prod: `pnpm build` (Vite-Client) + `pnpm start` (`tsx src/server/index.ts`,
@@ -19,58 +21,31 @@ API-Calls laufen über Hono-Routes.
 
 ## Design-Disziplin (Miranum "Swiss Lab")
 
-Quelle der Wahrheit: `.context/attachments/style-guide.html`. Tokens leben in
-`src/client/styles.css`. shadcn-Variablen sind dort auf `--mn-*` gemappt; jede
-shadcn-Komponente erbt das Theme automatisch.
+Vollständige Referenz: **`.claude/skills/miranum-design/SKILL.md`** (Tokens,
+Komponenten, Do/Don't, Page-Header-Pattern). Visuelle Live-Demo:
+`.context/attachments/style-guide.html` (im Browser öffnen).
 
-**Do**:
+Kurz-Regeln: Square corners überall, 1px-Borders, kein Shadow/Gradient,
+Akzent-Rot maximal einmal pro Screen, Mono nur für Labels/Daten,
+Group-Farben nur auf ElementBox/MnFeature.
 
-- **Square corners überall**. `--radius: 0` ist gesetzt, jede Tailwind-Radius-Stufe
-  ist auf `0` zwangs-gemappt. Wenn etwas rund aussieht, ist's ein Bug.
-- **1px-Borders**. Keine Schatten, keine Glasmorphism, keine Gradients.
-- **Akzent-Rot** (`bg-mn-accent` / `--mn-accent`) **nur einmal pro Screen** —
-  Kicker, Tagline oder ein einziger Primär-CTA. Nicht für Standard-Buttons.
-- **Mono-Schrift** (`font-mono`, `mn-mono`) für Labels, Daten, Metadaten,
-  Kicker. Inter für alles Lesbare.
-- **Group-Farben** (`grp-finance`, `grp-ops`, `grp-time`, `grp-tools`, `grp-ai`)
-  **ausschließlich** auf `<ElementBox>` und `<MnFeature accent="…">`. Niemals
-  für Buttons, Links, Status, sonstige UI-Aktionen.
-- Generös Whitespace. „Zu wenig" ist meistens richtig.
-
-**Don't**:
-
-- Keine zweite Display-Schrift einführen.
-- Keine `rounded-*`-Utilities auf Komponenten kleben — das negiert die
-  Design-Sprache.
-- Keine Drop-Shadows / `shadow-*`.
-- Keine Group-Farben für UI-Aktionen.
-- Keine Emoji-Icons in Produktiv-UI (für Demos OK). Lucide-Icons (`lucide-react`)
-  sind installiert.
-- Keine ElementBox-Rotation/Schräglage — sie ist ein technisches Token, kein
-  dekoratives.
-- Keine Dark-Mode-Variante hinzufügen ohne explizite Anforderung — das Style-Guide
-  ist bewusst light-only.
-
-## Komponenten-Quellen
-
-- **shadcn-Primitives** (`#/components/ui/*.tsx`): Button, Input, Label, Card,
-  Table — Miranum-ge-themed. Beim Hinzufügen neuer shadcn-Komponenten via
-  `npx shadcn add <name>` **alle Rundungen, Shadows, Akzent-Farben prüfen**
-  und an Miranum anpassen, bevor du sie verwendest.
-- **Miranum-Primitives** (`#/components/miranum/*`): ElementBox, SectionHead,
-  MnTagline, MnFeature, MnAlert, MnStep / MnStepList, MnStatusBadge — die
-  einzigartigen Patterns aus dem Style-Guide.
-- **Element-Registry** (`#/lib/elements.ts`): `MIRANUM_ELEMENTS` als Quelle für
-  Module-Listen. Neue Module hier hinzufügen, dann via `MIRANUM_ELEMENTS.filter(...)`
-  rendern.
+ElementBox + Bereich-Kicker sind **Landing/Dashboard-Patterns** — nicht als
+Page-Header-Schmuck auf jeder Subpage.
 
 ## Pages-Konvention
 
-- `/` — Landing/Dashboard (Hero + Feature-Grid)
-- `/modules` — Beispiel App-Surface mit Page-Header-Pattern + Module-Grid + Tabelle
-- `/style-guide` — lebende Dokumentation aller Primitives. **Nicht löschen** wenn
-  das Template als Basis weiterverwendet wird; sie ist die schnellste Referenz für
-  Claude/Devs zu schauen, was verfügbar ist und wie's aussieht.
+- `/` — Landing/Dashboard (Hero + ElementBox + Feature-Grid)
+- `/modules` — Beispiel App-Surface (schlichter Header + Module-Grid + Tabelle)
+- `/sync` — Dimacon → Clockin Sync UI (schlichter Header + Form + Result)
+- `/settings` — Sync-Scheduler konfigurieren (Cron, Timezone, Enabled)
+
+## Settings-Persistenz
+
+Sync-Scheduler (Cron, Timezone, Enabled) wird via UI editiert und in
+`SETTINGS_PATH` (JSON, default `./data/settings.json`) persistiert. PUT auf
+`/api/settings/sync` validiert + restartet den Scheduler hot. Env-Vars
+`SYNC_CRON` / `SYNC_TZ` dienen nur als Erst-Seed beim allerersten Start.
+Auf Fly: Volume an `/data` mounten, `SETTINGS_PATH=/data/settings.json`.
 
 ## Quality Gates
 
@@ -82,3 +57,15 @@ sein. Pre-Commit-Hook erzwingt das via Husky + lint-staged.
 API-Tokens: `process.env`-Variablen, lazy validation beim ersten Request. Variablen
 und Pflichtangaben siehe README. Niemals API-Tokens als `VITE_*` exportieren —
 Browser-Bundle ist public.
+
+## Auth (WorkOS)
+
+Public-Client-PKCE-Flow via `@workos-inc/authkit-react` im Frontend, JWKS-
+basierte JWT-Verifikation via `jose` im Backend. Middleware sitzt in
+`src/server/lib/auth.ts` und wird vor `/api/clockin|dimacon|lexoffice|settings`
+gemountet (Reihenfolge in `src/server/index.ts` ist load-bearing — `/api/sync`
+wird **vor** der Middleware gemountet, damit `healthz` + `run` offen bleiben).
+Wenn `WORKOS_CLIENT_ID` leer ist, ist Auth aus (Dev-Fallback). Frontend-Gate
+prüft `VITE_WORKOS_CLIENT_ID` build-time und mountet `<AuthKitProvider>` +
+`<AuthGate>` nur dann. Alle UI-Fetches gehen über `useApiFetch()` in
+`src/client/lib/api.ts`, das den Bearer-Header anhängt.

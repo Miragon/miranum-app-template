@@ -1,4 +1,6 @@
 import { Link } from "@tanstack/react-router"
+import { AUTH_ENABLED } from "../lib/auth-flag.js"
+import { UserMenu } from "./UserMenu.js"
 
 export interface PageChromeProps {
   /** Top-left mono label, e.g. "MIRANUM · MN · 01 / WS · TEMPLATE" */
@@ -10,7 +12,8 @@ export interface PageChromeProps {
 const NAV = [
   { to: "/", label: "Home" },
   { to: "/modules", label: "Modules" },
-  { to: "/style-guide", label: "Style Guide" },
+  { to: "/sync", label: "Sync" },
+  { to: "/settings", label: "Settings" },
 ] as const
 
 export function PageChrome({
@@ -37,6 +40,7 @@ export function PageChrome({
             {item.label}
           </Link>
         ))}
+        {AUTH_ENABLED ? <UserMenu /> : null}
       </nav>
     </>
   )
