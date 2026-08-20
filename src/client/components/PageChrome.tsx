@@ -1,4 +1,6 @@
 import { Link } from "@tanstack/react-router"
+import { AUTH_ENABLED } from "../lib/auth-flag.js"
+import { UserMenu } from "./UserMenu.js"
 
 export interface PageChromeProps {
   /** Top-left mono label, e.g. "MIRANUM · MN · 01 / WS · TEMPLATE" */
@@ -10,7 +12,8 @@ export interface PageChromeProps {
 const NAV = [
   { to: "/", label: "Home" },
   { to: "/modules", label: "Modules" },
-  { to: "/style-guide", label: "Style Guide" },
+  { to: "/sync", label: "Sync" },
+  { to: "/settings", label: "Settings" },
 ] as const
 
 export function PageChrome({
@@ -19,9 +22,12 @@ export function PageChrome({
 }: PageChromeProps) {
   return (
     <>
-      <div className="text-ink-3 pointer-events-none fixed top-6 left-12 z-50 font-mono text-[10px] tracking-[0.22em] uppercase max-md:hidden">
+      <Link
+        to="/"
+        className="text-ink-3 hover:text-ink fixed top-6 left-12 z-50 font-mono text-[10px] tracking-[0.22em] uppercase transition-colors max-md:hidden"
+      >
         {label}
-      </div>
+      </Link>
       <div className="text-ink-3 pointer-events-none fixed right-12 bottom-6 z-50 font-mono text-[10px] tracking-[0.18em] max-md:hidden">
         {foot}
       </div>
@@ -30,13 +36,15 @@ export function PageChrome({
           <Link
             key={item.to}
             to={item.to}
-            className="text-ink-3 hover:text-ink font-mono text-[11px] tracking-[0.18em] uppercase transition-colors"
+            className="hover:text-ink font-mono text-[11px] tracking-[0.18em] uppercase transition-colors"
             activeProps={{ className: "text-ink" }}
+            inactiveProps={{ className: "text-ink-3" }}
             activeOptions={{ exact: item.to === "/" }}
           >
             {item.label}
           </Link>
         ))}
+        {AUTH_ENABLED ? <UserMenu /> : null}
       </nav>
     </>
   )

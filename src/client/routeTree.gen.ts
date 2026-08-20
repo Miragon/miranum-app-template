@@ -9,13 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as StyleGuideRouteImport } from './routes/style-guide'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ModulesRouteImport } from './routes/modules'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SyncIndexRouteImport } from './routes/sync.index'
+import { Route as SyncIntegrationIdRouteImport } from './routes/sync.$integrationId'
+import { Route as SyncIntegrationIdSettingsRouteImport } from './routes/sync_.$integrationId.settings'
 
-const StyleGuideRoute = StyleGuideRouteImport.update({
-  id: '/style-guide',
-  path: '/style-guide',
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ModulesRoute = ModulesRouteImport.update({
@@ -28,44 +31,91 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SyncIndexRoute = SyncIndexRouteImport.update({
+  id: '/sync/',
+  path: '/sync/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SyncIntegrationIdRoute = SyncIntegrationIdRouteImport.update({
+  id: '/sync/$integrationId',
+  path: '/sync/$integrationId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SyncIntegrationIdSettingsRoute =
+  SyncIntegrationIdSettingsRouteImport.update({
+    id: '/sync_/$integrationId/settings',
+    path: '/sync/$integrationId/settings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/modules': typeof ModulesRoute
-  '/style-guide': typeof StyleGuideRoute
+  '/settings': typeof SettingsRoute
+  '/sync/$integrationId': typeof SyncIntegrationIdRoute
+  '/sync/': typeof SyncIndexRoute
+  '/sync/$integrationId/settings': typeof SyncIntegrationIdSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/modules': typeof ModulesRoute
-  '/style-guide': typeof StyleGuideRoute
+  '/settings': typeof SettingsRoute
+  '/sync/$integrationId': typeof SyncIntegrationIdRoute
+  '/sync': typeof SyncIndexRoute
+  '/sync/$integrationId/settings': typeof SyncIntegrationIdSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/modules': typeof ModulesRoute
-  '/style-guide': typeof StyleGuideRoute
+  '/settings': typeof SettingsRoute
+  '/sync/$integrationId': typeof SyncIntegrationIdRoute
+  '/sync/': typeof SyncIndexRoute
+  '/sync_/$integrationId/settings': typeof SyncIntegrationIdSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/modules' | '/style-guide'
+  fullPaths:
+    | '/'
+    | '/modules'
+    | '/settings'
+    | '/sync/$integrationId'
+    | '/sync/'
+    | '/sync/$integrationId/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/modules' | '/style-guide'
-  id: '__root__' | '/' | '/modules' | '/style-guide'
+  to:
+    | '/'
+    | '/modules'
+    | '/settings'
+    | '/sync/$integrationId'
+    | '/sync'
+    | '/sync/$integrationId/settings'
+  id:
+    | '__root__'
+    | '/'
+    | '/modules'
+    | '/settings'
+    | '/sync/$integrationId'
+    | '/sync/'
+    | '/sync_/$integrationId/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ModulesRoute: typeof ModulesRoute
-  StyleGuideRoute: typeof StyleGuideRoute
+  SettingsRoute: typeof SettingsRoute
+  SyncIntegrationIdRoute: typeof SyncIntegrationIdRoute
+  SyncIndexRoute: typeof SyncIndexRoute
+  SyncIntegrationIdSettingsRoute: typeof SyncIntegrationIdSettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/style-guide': {
-      id: '/style-guide'
-      path: '/style-guide'
-      fullPath: '/style-guide'
-      preLoaderRoute: typeof StyleGuideRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/modules': {
@@ -82,13 +132,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sync/': {
+      id: '/sync/'
+      path: '/sync'
+      fullPath: '/sync/'
+      preLoaderRoute: typeof SyncIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sync/$integrationId': {
+      id: '/sync/$integrationId'
+      path: '/sync/$integrationId'
+      fullPath: '/sync/$integrationId'
+      preLoaderRoute: typeof SyncIntegrationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sync_/$integrationId/settings': {
+      id: '/sync_/$integrationId/settings'
+      path: '/sync/$integrationId/settings'
+      fullPath: '/sync/$integrationId/settings'
+      preLoaderRoute: typeof SyncIntegrationIdSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ModulesRoute: ModulesRoute,
-  StyleGuideRoute: StyleGuideRoute,
+  SettingsRoute: SettingsRoute,
+  SyncIntegrationIdRoute: SyncIntegrationIdRoute,
+  SyncIndexRoute: SyncIndexRoute,
+  SyncIntegrationIdSettingsRoute: SyncIntegrationIdSettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

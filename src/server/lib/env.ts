@@ -9,19 +9,20 @@ function optional(name: string): string | undefined {
   return value && value.length > 0 ? value : undefined
 }
 
+/**
+ * Laufzeit-Konfiguration. Die Integrations-Credentials (DIMACON_*,
+ * CLOCKIN_*, LEXWARE_OFFICE_*) sind KEINE Laufzeit-Env mehr — sie liegen
+ * verschlüsselt je Mandant in Postgres (tenant_credentials) und werden nur
+ * noch vom einmaligen Legacy-Seed (db/seed-legacy.ts) direkt aus process.env
+ * gelesen. Gleiches gilt für WORKOS_REQUIRED_ORG_ID, SYNC_WEBHOOK_SECRET und
+ * SYNC_CRON/SYNC_TZ (Seed-Input).
+ */
 export const env = {
   port: Number(process.env.PORT ?? 3020),
-  clockin: {
-    apiToken: () => required("CLOCKIN_API_TOKEN"),
-    baseUrl: () => optional("CLOCKIN_BASE_URL"),
+  database: {
+    url: () => required("DATABASE_URL"),
   },
-  dimacon: {
-    apiToken: () => required("DIMACON_API_TOKEN"),
-    baseUrl: () => required("DIMACON_BASE_URL"),
-    tenant: () => required("DIMACON_TENANT"),
-  },
-  lexoffice: {
-    apiKey: () => required("LEXWARE_OFFICE_API_KEY"),
-    baseUrl: () => optional("LEXWARE_OFFICE_BASE_URL"),
+  workos: {
+    clientId: () => optional("WORKOS_CLIENT_ID"),
   },
 }
